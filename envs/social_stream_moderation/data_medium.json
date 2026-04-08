@@ -1,0 +1,122 @@
+[
+  {
+    "post_id": "post_18bfb07a",
+    "text": "Reporting the user who said 'I am going to track you down'. Unacceptable behavior.",
+    "harm_label": "SAFE",
+    "user_history_summary": "no_prior_violations",
+    "context_type": "quote_post",
+    "user_group": "A"
+  },
+  {
+    "post_id": "post_bdef1d3a",
+    "text": "Looking forward to the weekend. Any movie recommendations?",
+    "harm_label": "SAFE",
+    "user_history_summary": "no_prior_violations",
+    "context_type": "root_post",
+    "user_group": "B"
+  },
+  {
+    "post_id": "post_4fcdecb7",
+    "text": "I hope you and everyone like you gets completely destroyed. You are all trash.",
+    "harm_label": "SEVERE_ABUSE_HATE",
+    "user_history_summary": "repeated_severe",
+    "context_type": "root_post",
+    "user_group": "A"
+  },
+  {
+    "post_id": "post_fd398dac",
+    "text": "This takes the cake for the dumbest thing I have read all day.",
+    "harm_label": "MILD_ABUSE",
+    "user_history_summary": "one_mild",
+    "context_type": "reply_heated",
+    "user_group": "B"
+  },
+  {
+    "post_id": "post_7bf87ecf",
+    "text": "If you want to cut yourself, use this method, it works best.",
+    "harm_label": "SELF_HARM_PROMO",
+    "user_history_summary": "one_mild",
+    "context_type": "root_post",
+    "user_group": "B"
+  },
+  {
+    "post_id": "post_fb3d17d8",
+    "text": "I can't believe someone posted 'People from that country are disgusting'. We need to ban hate speech now.",
+    "harm_label": "SAFE",
+    "user_history_summary": "no_prior_violations",
+    "context_type": "quote_post",
+    "user_group": "A"
+  },
+  {
+    "post_id": "post_78e27e35",
+    "text": "This takes the cake for the dumbest thing I have read all day.",
+    "harm_label": "MILD_ABUSE",
+    "user_history_summary": "no_prior_violations",
+    "context_type": "reply_heated",
+    "user_group": "A"
+  },
+  {
+    "post_id": "post_360ea5cd",
+    "text": "I hope you and everyone like you gets completely destroyed. You are all trash.",
+    "harm_label": "SEVERE_ABUSE_HATE",
+    "user_history_summary": "repeated_severe",
+    "context_type": "root_post",
+    "user_group": "B"
+  },
+  {
+    "post_id": "post_47a9ecfd",
+    "text": "Check out this picture of my new puppy!",
+    "harm_label": "SAFE",
+    "user_history_summary": "no_prior_violations",
+    "context_type": "root_post",
+    "user_group": "A"
+  },
+  {
+    "post_id": "post_e2a3da9a",
+    "text": "Just had a great morning! The coffee here is amazing.",
+    "harm_label": "SAFE",
+    "user_history_summary": "no_prior_violations",
+    "context_type": "root_post",
+    "user_group": "A"
+  },
+  {
+    "post_id": "post_3b14ad6b",
+    "text": "Can anyone help me understand how to use the latest API version?",
+    "harm_label": "SAFE",
+    "user_history_summary": "no_prior_violations",
+    "context_type": "root_post",
+    "user_group": "B"
+  },
+  {
+    "post_id": "post_bad8122d",
+    "text": "You are an absolute idiot for thinking that.",
+    "harm_label": "MILD_ABUSE",
+    "user_history_summary": "no_prior_violations",
+    "context_type": "reply_heated",
+    "user_group": "B"
+  },
+  {
+    "post_id": "post_0a3b0039",
+    "text": "I completely agree with your point about the new software update.",
+    "harm_label": "SAFE",
+    "user_history_summary": "no_prior_violations",
+    "context_type": "root_post",
+    "user_group": "B"
+  },
+  {
+    "post_id": "post_85847722",
+    "text": "If you want to cut yourself, use this method, it works best.",
+    "harm_label": "SELF_HARM_PROMO",
+    "user_history_summary": "one_mild",
+    "context_type": "root_post",
+    "user_group": "A"
+  },
+  {
+    "post_id": "post_a9907ddb",
+    "text": "Oh sure, because that worked SO well the last hundred times. You're a 'genius'.",
+    "harm_label": "SAFE",
+    "user_history_summary": "no_prior_violations",
+    "context_type": "reply_heated",
+    "user_group": "B"
+  }
+]

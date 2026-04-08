@@ -1,0 +1,44 @@
+name: SocialStreamModerationEnv
+version: 1.0.0
+tasks:
+  - name: clear_cut_moderation
+    difficulty: easy
+    description: "Moderate a stream of social posts with obvious violations and safe content."
+  - name: nuanced_sarcastic
+    difficulty: medium
+    description: "Handle sarcastic content and quotes of harmful material with condemnation."
+  - name: policy_fairness
+    difficulty: hard
+    description: "Ensure fairness across user groups and adhere to stricter policy regimes."
+
+schemas:
+  state:
+    type: object
+    properties:
+      post_id: { type: string }
+      text: { type: string }
+      user_history_summary: { type: string }
+      context_type: { type: string }
+      platform_policy_mode: { type: string }
+      user_group: { type: string }
+      step_index: { type: integer }
+      total_steps: { type: integer }
+  action:
+    type: string
+    enum:
+      - ALLOW
+      - ALLOW_WITH_WARNING
+      - SOFT_HIDE
+      - ESCALATE_HUMAN
+      - BAN_USER
+  info:
+    type: object
+    properties:
+      ground_truth_label: { type: string }
+      action_taken: { type: string }
+      reward: { type: number }
+      final_episode_score: { type: number }
+
+paths:
+  inference: ./inference.py
+  app: ./app.py

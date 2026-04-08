@@ -1,0 +1,162 @@
+[
+  {
+    "post_id": "post_0d5e3da3",
+    "text": "I am going to track you down and hurt your family. Watch your back.",
+    "harm_label": "SEVERE_ABUSE_HATE",
+    "user_history_summary": "repeated_severe",
+    "context_type": "root_post",
+    "user_group": "B"
+  },
+  {
+    "post_id": "post_8cba0238",
+    "text": "People from that country are disgusting subhumans who should be eradicated.",
+    "harm_label": "SEVERE_ABUSE_HATE",
+    "user_history_summary": "one_mild",
+    "context_type": "reply_heated",
+    "user_group": "A"
+  },
+  {
+    "post_id": "post_8413c1f7",
+    "text": "I completely agree with your point about the new software update.",
+    "harm_label": "SAFE",
+    "user_history_summary": "no_prior_violations",
+    "context_type": "root_post",
+    "user_group": "A"
+  },
+  {
+    "post_id": "post_b1bb70b3",
+    "text": "Shut up you dummy, I love you so much! Best friends forever.",
+    "harm_label": "SAFE",
+    "user_history_summary": "no_prior_violations",
+    "context_type": "reply_heated",
+    "user_group": "B"
+  },
+  {
+    "post_id": "post_79d6012c",
+    "text": "You are an absolute idiot for thinking that.",
+    "harm_label": "MILD_ABUSE",
+    "user_history_summary": "no_prior_violations",
+    "context_type": "reply_heated",
+    "user_group": "A"
+  },
+  {
+    "post_id": "post_1e9e2f12",
+    "text": "I can't believe someone posted 'People from that country are disgusting'. We need to ban hate speech now.",
+    "harm_label": "SAFE",
+    "user_history_summary": "no_prior_violations",
+    "context_type": "quote_post",
+    "user_group": "A"
+  },
+  {
+    "post_id": "post_135cd5b9",
+    "text": "You are an absolute idiot for thinking that.",
+    "harm_label": "MILD_ABUSE",
+    "user_history_summary": "one_mild",
+    "context_type": "reply_heated",
+    "user_group": "A"
+  },
+  {
+    "post_id": "post_fe8e2eee",
+    "text": "Selling my worn underwear and asking for explicit sexual pics in return. DM me.",
+    "harm_label": "SEXUAL_EXPLICIT",
+    "user_history_summary": "no_prior_violations",
+    "context_type": "root_post",
+    "user_group": "A"
+  },
+  {
+    "post_id": "post_46b621c7",
+    "text": "This takes the cake for the dumbest thing I have read all day.",
+    "harm_label": "MILD_ABUSE",
+    "user_history_summary": "one_mild",
+    "context_type": "reply_heated",
+    "user_group": "B"
+  },
+  {
+    "post_id": "post_b56d1f6e",
+    "text": "I hope you and everyone like you gets completely destroyed. You are all trash.",
+    "harm_label": "SEVERE_ABUSE_HATE",
+    "user_history_summary": "repeated_severe",
+    "context_type": "reply_heated",
+    "user_group": "A"
+  },
+  {
+    "post_id": "post_e55da018",
+    "text": "Just had a great morning! The coffee here is amazing.",
+    "harm_label": "SAFE",
+    "user_history_summary": "no_prior_violations",
+    "context_type": "root_post",
+    "user_group": "B"
+  },
+  {
+    "post_id": "post_8e62a5ea",
+    "text": "I can't take it anymore. Here is the easiest way to end it all...",
+    "harm_label": "SELF_HARM_PROMO",
+    "user_history_summary": "one_mild",
+    "context_type": "root_post",
+    "user_group": "B"
+  },
+  {
+    "post_id": "post_2cca25e9",
+    "text": "Selling my worn underwear and asking for explicit sexual pics in return. DM me.",
+    "harm_label": "SEXUAL_EXPLICIT",
+    "user_history_summary": "repeated_severe",
+    "context_type": "root_post",
+    "user_group": "A"
+  },
+  {
+    "post_id": "post_4c35fbaa",
+    "text": "I can't take it anymore. Here is the easiest way to end it all...",
+    "harm_label": "SELF_HARM_PROMO",
+    "user_history_summary": "one_mild",
+    "context_type": "root_post",
+    "user_group": "A"
+  },
+  {
+    "post_id": "post_a90ca343",
+    "text": "Click here for explicitly sexual hardcore adult videos involving real people.",
+    "harm_label": "SEXUAL_EXPLICIT",
+    "user_history_summary": "no_prior_violations",
+    "context_type": "root_post",
+    "user_group": "B"
+  },
+  {
+    "post_id": "post_6b669a11",
+    "text": "You are an absolute idiot for thinking that.",
+    "harm_label": "MILD_ABUSE",
+    "user_history_summary": "no_prior_violations",
+    "context_type": "reply_heated",
+    "user_group": "B"
+  },
+  {
+    "post_id": "post_a86a5a65",
+    "text": "I am going to track you down and hurt your family. Watch your back.",
+    "harm_label": "SEVERE_ABUSE_HATE",
+    "user_history_summary": "repeated_severe",
+    "context_type": "reply_heated",
+    "user_group": "B"
+  },
+  {
+    "post_id": "post_08d281da",
+    "text": "Can anyone help me understand how to use the latest API version?",
+    "harm_label": "SAFE",
+    "user_history_summary": "no_prior_violations",
+    "context_type": "root_post",
+    "user_group": "B"
+  },
+  {
+    "post_id": "post_579f2b6b",
+    "text": "I completely agree with your point about the new software update.",
+    "harm_label": "SAFE",
+    "user_history_summary": "no_prior_violations",
+    "context_type": "root_post",
+    "user_group": "A"
+  },
+  {
+    "post_id": "post_3e3292a3",
+    "text": "Selling my worn underwear and asking for explicit sexual pics in return. DM me.",
+    "harm_label": "SEXUAL_EXPLICIT",
+    "user_history_summary": "repeated_severe",
+    "context_type": "root_post",
+    "user_group": "B"
+  }
+]
