@@ -675,6 +675,6 @@ def kill_port(port):
 if __name__ == "__main__":
     import uvicorn
     # Automatically clear the port before starting to avoid [WinError 10048]
-    kill_port(8080)
-    uvicorn.run(app, host="0.0.0.0", port=8080)
+    kill_port(7860)
+    uvicorn.run(app, host="0.0.0.0", port=7860)
 
