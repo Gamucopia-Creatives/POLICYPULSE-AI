@@ -267,27 +267,30 @@ class FairnessBiasGrader(Rubric):
 # Grader registry – maps grader IDs declared in openenv.yaml to instances.
 # ---------------------------------------------------------------------------
 
-GRADER_REGISTRY: Dict[str, Rubric] = {
-    BasicSafetyGrader.grader_id: BasicSafetyGrader(),
-    ContextNuanceGrader.grader_id: ContextNuanceGrader(),
-    FairnessBiasGrader.grader_id: FairnessBiasGrader(),
+GRADER_REGISTRY: Dict[str, type] = {
+    BasicSafetyGrader.grader_id: BasicSafetyGrader,
+    ContextNuanceGrader.grader_id: ContextNuanceGrader,
+    FairnessBiasGrader.grader_id: FairnessBiasGrader,
 }
 
 
 def get_grader(grader_id: str) -> Rubric:
-    """Look up a grader by its ID. Raises ``KeyError`` if not found."""
+    """Look up a grader by its ID and return a **new** instance.
+
+    Raises ``KeyError`` if not found.
+    """
     if grader_id not in GRADER_REGISTRY:
         raise KeyError(f"Grader '{grader_id}' not found. Available: {list(GRADER_REGISTRY.keys())}")
-    return GRADER_REGISTRY[grader_id]
+    return GRADER_REGISTRY[grader_id]()
 
 
 def list_graders() -> List[Dict[str, str]]:
     """Return metadata for all registered graders."""
     result: List[Dict[str, str]] = []
-    for grader_id, grader in GRADER_REGISTRY.items():
+    for grader_id, grader_cls in GRADER_REGISTRY.items():
         result.append({
             "id": grader_id,
-            "description": grader.description,
-            "class": type(grader).__name__,
+            "description": grader_cls.description,
+            "class": grader_cls.__name__,
         })
     return result
