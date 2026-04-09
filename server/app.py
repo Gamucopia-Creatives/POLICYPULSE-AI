@@ -32,9 +32,9 @@ class ContextTypeChoice(str, Enum):
 
 # Mapping UI labels back to backend IDs
 TASK_MAP = {
-    TaskName.TASK_1: "clear_cut_moderation",
-    TaskName.TASK_2: "nuanced_sarcastic",
-    TaskName.TASK_3: "policy_fairness"
+    TaskName.TASK_1: "Task 1: Basic Safety",
+    TaskName.TASK_2: "Task 2: Context & Nuance",
+    TaskName.TASK_3: "Task 3: Fairness & Bias"
 }
 
 POLICY_MAP = {
@@ -100,9 +100,14 @@ class LLMConfigRequest(BaseModel):
 class StepRequest(BaseModel):
     action: ModerationAction = Field(ModerationAction.ALLOW, description="The action to apply to the current post.")
 
+class FeedbackRequest(BaseModel):
+    text: str
+    corrected_action: ModerationAction
+    reason: str
+
 @app.get("/", response_class=HTMLResponse)
 def read_root():
-    return """
+    return r"""
 
     <!DOCTYPE html>
     <html lang="en">
@@ -125,8 +130,27 @@ def read_root():
             body {
                 font-family:'Outfit', sans-serif; background: #030712; color:var(--text);
                 height:100vh; overflow:hidden; display:flex; flex-direction:column;
+                transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             }
-            main { flex:1; display:grid; grid-template-columns: 400px 1fr; gap:20px; padding:20px; max-height:calc(100vh - 60px); }
+            
+            /* Custom Scrollbars */
+            ::-webkit-scrollbar { width: 6px; height: 6px; }
+            ::-webkit-scrollbar-track { background: transparent; }
+            ::-webkit-scrollbar-thumb { background: rgba(56, 189, 248, 0.2); border-radius: 10px; }
+            ::-webkit-scrollbar-thumb:hover { background: var(--accent); }
+
+            main { 
+                flex:1; 
+                display:grid; 
+                grid-template-columns: 320px 1fr 0px; 
+                gap:20px; 
+                padding:20px; 
+                max-height:calc(100vh - 60px); 
+                transition: 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            }
+            body.audit-active main { 
+                grid-template-columns: 320px 1fr 420px; 
+            }
 
             header { height:60px; display:flex; align-items:center; justify-content:space-between; padding:0 30px; border-bottom:1px solid rgba(255,255,255,0.05); background:rgba(15, 23, 42, 0.4); }
             .logo { font-weight:800; font-size:1.4rem; letter-spacing:-0.03em; color:var(--accent); }
@@ -166,25 +190,72 @@ def read_root():
             .stat-value { font-size:1.1rem; font-weight:800; font-family:'JetBrains Mono'; margin-top:5px; color:var(--accent); }
 
             .log-container { background:rgba(0,0,0,0.2); border-radius:20px; border:1px solid rgba(255,255,255,0.05); flex:1; overflow-y:auto; padding:20px; display:flex; flex-direction:column; gap:12px; }
-            .log-entry { background:rgba(255,255,255,0.02); padding:18px; border-radius:14px; border-left:3px solid var(--accent); animation:fadeIn 0.3s; }
+            .log-entry { 
+                background:rgba(255,255,255,0.02); padding:18px; border-radius:14px; 
+                border-left:3px solid var(--accent); animation:fadeIn 0.3s; 
+                transition:0.3s; cursor:default;
+            }
+            .log-entry.active-audit { background:rgba(56,189,248,0.08); border-color:var(--accent); box-shadow:0 10px 30px rgba(0,0,0,0.3); }
             @keyframes fadeIn { from { opacity:0; transform:translateY(5px); } to { opacity:1; transform:translateY(0); } }
             .log-meta { display:flex; justify-content:space-between; font-size:0.7rem; color:var(--muted); margin-bottom:8px; font-weight:600; }
             .log-text { font-size:0.95rem; line-height:1.4; color:#e2e8f0; }
             .log-badge { font-size:0.6rem; font-weight:800; padding:2px 8px; border-radius:4px; text-transform:uppercase; margin-top:10px; display:inline-block; }
 
-            /* Footer links icons */
-            .footer-links { display:flex; gap:15px; }
-            .footer-links a { font-size:0.75rem; color:var(--muted); text-decoration:none; transition:0.3s; }
-            .footer-links a:hover { color:var(--accent); }
+            .audit-btn { background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); color:var(--muted); font-size:0.6rem; padding:4px 12px; border-radius:6px; cursor:pointer; font-weight:800; transition:0.2s; }
+            .audit-btn:hover { background:var(--danger); color:#000; border-color:var(--danger); }
+            
+            .verify-btn { background:rgba(74,222,128,0.05); border:1px solid var(--success); color:var(--success); font-size:0.6rem; padding:4px 12px; border-radius:6px; cursor:pointer; font-weight:800; transition:0.2s; }
+            .verify-btn:hover { background:var(--success); color:#000; }
+
+            .grid-btn { background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); color:white; font-size:0.7rem; padding:12px; border-radius:8px; cursor:pointer; font-weight:700; transition:0.2s; }
+            .grid-btn:hover { background:var(--accent); color:#020617; border-color:var(--accent); }
+
+            /* Skeleton Shimmer */
+            .skeleton { 
+                height: 200px; 
+                background: linear-gradient(90deg, rgba(255,255,255,0.03) 25%, rgba(255,255,255,0.08) 50%, rgba(255,255,255,0.03) 75%);
+                background-size: 200% 100%;
+                animation: shimmer 1.5s infinite;
+                border-radius: 14px;
+                margin-bottom: 12px;
+                border: 1px solid rgba(255,255,255,0.05);
+            }
+            @keyframes shimmer {
+                0% { background-position: 200% 0; }
+                100% { background-position: -200% 0; }
+            }
 
             .empty-state { margin:auto; text-align:center; color:var(--muted); font-weight:300; }
+
+            /* Header Nav */
+            .nav-links { display:flex; gap:25px; align-items:center; }
+            .nav-links a { 
+                font-size:0.75rem; 
+                color:var(--muted); 
+                text-decoration:none; 
+                font-weight:700; 
+                letter-spacing:0.05em; 
+                transition:0.3s; 
+                position:relative;
+                padding-bottom: 4px;
+            }
+            .nav-links a:hover { color:var(--accent); }
+            .nav-links a::after {
+                content: '';
+                position: absolute;
+                bottom: 0; left: 0;
+                width: 0; height: 1px;
+                background: var(--accent);
+                transition: 0.3s;
+            }
+            .nav-links a:hover::after { width: 100%; }
         </style>
     </head>
     <body>
         <header>
             <div class="logo">POLICYPULSE <span style="font-weight:300">AI</span></div>
             <div style="display:flex; align-items:center; gap:20px;">
-                <div class="footer-links">
+                <div class="nav-links">
                     <a href="/docs">API REFERENCE</a>
                     <a href="/state">SYSTEM STATUS</a>
                 </div>
@@ -242,9 +313,9 @@ def read_root():
                         <div class="field">
                             <label>Benchmark Level</label>
                             <select id="auto-task">
-                                <option value="clear_cut_moderation">Task 1: Basic Safety</option>
-                                <option value="nuanced_sarcastic">Task 2: Context & Nuance</option>
-                                <option value="policy_fairness">Task 3: Fairness & Bias</option>
+                                <option value="Task 1: Basic Safety">Task 1: Basic Safety</option>
+                                <option value="Task 2: Context & Nuance">Task 2: Context & Nuance</option>
+                                <option value="Task 3: Fairness & Bias">Task 3: Fairness & Bias</option>
                             </select>
                         </div>
                         <button class="btn btn-primary" id="btn-auto-reset">START BENCHMARK</button>
@@ -260,7 +331,7 @@ def read_root():
                         </div>
                     </div>
 
-                    <button class="btn btn-primary" id="btn-lab-run" style="margin-top:20px">RUN MODERATION</button>
+                    <button class="btn btn-primary" id="btn-lab-run" style="margin-top:20px" disabled>RUN MODERATION</button>
                     <button class="btn btn-secondary" id="btn-global-clear" style="margin-top:10px">PURGE LOGS</button>
 
                 </div>
@@ -284,7 +355,22 @@ def read_root():
                 </div>
 
                 <div class="log-container" id="log-viewport">
-                    <div class="empty-state" id="empty-hint">Waiting for neural injection... Select a mode to begin.</div>
+                    <div class="empty-state" id="empty-hint">
+                        <div style="font-size:3rem; margin-bottom:20px; opacity:0.2;">📉</div>
+                        <div style="font-weight:600; font-size:0.9rem;">Intelligence Stream Idle</div>
+                        <p style="font-size:0.75rem; opacity:0.5; margin-top:10px;">Configure your parameters and click 'RUN MODERATION' to begin ingestion.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Audit Inspector Sidepanel (Now correctly part of the grid) -->
+            <div id="inspector-pane" class="panel" style="border-left:1px solid rgba(255,255,255,0.1); background:rgba(15,23,42,0.6); overflow:hidden; visibility:hidden; opacity:0; transition:0.4s;">
+                <div class="panel-header" style="display:flex; justify-content:space-between; align-items:center;">
+                    <div class="panel-title">Audit Inspector</div>
+                    <button onclick="closeInspector()" style="background:none; border:none; color:var(--muted); cursor:pointer; font-size:1.2rem;">&times;</button>
+                </div>
+                <div class="panel-content" id="inspector-content" style="padding:20px;">
+                    <!-- Content injected by JS -->
                 </div>
             </div>
         </main>
@@ -309,18 +395,32 @@ def read_root():
             let currentMode = 'lab';
 
             // Tab Switching
-            tabs.lab.onclick = () => switchMode('lab');
-            tabs.auto.onclick = () => switchMode('auto');
+            tabs.lab.onclick = () => setMode('lab');
+            tabs.auto.onclick = () => setMode('auto');
 
-            function switchMode(m) {
+            // Mode Switch Logic
+            function setMode(m) {
                 currentMode = m;
-                tabs.lab.classList.toggle('active', m === 'lab');
-                tabs.auto.classList.toggle('active', m === 'auto');
                 sections.lab.style.display = m === 'lab' ? 'block' : 'none';
                 sections.auto.style.display = m === 'auto' ? 'block' : 'none';
+                tabs.lab.classList.toggle('active', m === 'lab');
+                tabs.auto.classList.toggle('active', m === 'auto');
+                
+                // Clear state UI
                 valState.textContent = 'READY';
                 valState.style.color = 'var(--accent)';
             }
+            
+            // Lab Input Validation
+            document.getElementById('lab-input').oninput = (e) => {
+                btnLabRun.disabled = !e.target.value.trim();
+            };
+
+            // Task Change Re-enables Start
+            document.getElementById('auto-task').onchange = () => {
+                btnAutoReset.disabled = false;
+                btnAutoStep.disabled = true;
+            };
 
             // Global Reset
             btnGlobalClear.onclick = () => {
@@ -332,6 +432,7 @@ def read_root():
                 valState.textContent = 'IDLE';
                 valState.style.color = 'var(--muted)';
                 btnAutoStep.disabled = true;
+                btnAutoReset.disabled = false; // Re-enable benchmark
                 if (currentMode === 'auto') valState.textContent = 'SYSTEM RESET';
             };
 
@@ -344,6 +445,13 @@ def read_root():
                 if (!text) return;
 
                 btnLabRun.disabled = true;
+
+                // Show Skeleton Loading State
+                const skeleton = document.createElement('div');
+                skeleton.id = 'lab-shimmer';
+                skeleton.innerHTML = `<div class="skeleton"></div>`;
+                logViewport.prepend(skeleton);
+
                 try {
                     const resp = await fetch('/evaluate', {
                         method: 'POST',
@@ -358,19 +466,43 @@ def read_root():
                             api_key: document.getElementById('config-key').value.trim() || undefined
                         })
                     });
+
+                    if (skeleton) skeleton.remove();
+
+                    if (!resp.ok) {
+                        const errData = await resp.json();
+                        throw new Error(errData.detail || "Neural Evaluation Failed");
+                    }
+
                     const data = await resp.json();
                     renderEntry(text, data.action, data.reward, policy, data.reason, {history, context});
                     updateHUD(data.reward);
-                } finally {
-                    btnLabRun.disabled = false;
                     document.getElementById('lab-input').value = '';
+                    btnLabRun.disabled = true; // Auto-disable after clear
+                } catch (e) {
+                    if (skeleton) skeleton.remove();
+                    const errorEntry = document.createElement('div');
+                    errorEntry.className = 'log-entry';
+                    errorEntry.style.borderLeftColor = 'var(--danger)';
+                    errorEntry.style.background = 'rgba(244,114,182,0.05)';
+                    errorEntry.innerHTML = `
+                        <div class="log-meta"><span style="color:var(--danger)">⚠️ SYSTEM EXCEPTION</span></div>
+                        <div class="log-text">The neural bridge was interrupted. Check your API key or model availability.</div>
+                        <div style="font-size:0.6rem; color:var(--danger); margin-top:10px; opacity:0.7; font-family:'JetBrains Mono'">${e.toString()}</div>
+                    `;
+                    logViewport.prepend(errorEntry);
+                } finally {
+                    btnLabRun.disabled = !document.getElementById('lab-input').value.trim();
                 }
             };
 
 
             // Auto Benchmark
             btnAutoReset.onclick = async () => {
+                btnAutoReset.disabled = true; // Lock Benchmark
+                btnAutoStep.disabled = false;
                 const task = document.getElementById('auto-task').value;
+                valState.textContent = 'RESETTING...';
                 const resp = await fetch('/reset', {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
@@ -389,7 +521,16 @@ def read_root():
             };
 
             btnAutoStep.onclick = async () => {
+                if (btnAutoStep.disabled) return;
                 btnAutoStep.disabled = true;
+
+                // Show Skeleton Loading State
+                const logViewport = document.getElementById('log-viewport');
+                const skeleton = document.createElement('div');
+                skeleton.id = 'shimmer-loading';
+                skeleton.innerHTML = `<div class="skeleton"></div>`;
+                logViewport.prepend(skeleton);
+
                 try {
                     const stateResp = await fetch('/state');
                     const state = await stateResp.json();
@@ -414,6 +555,9 @@ def read_root():
                     });
                     const stepResult = await stepResp.json();
 
+                    // Remove Skeleton
+                    if (skeleton) skeleton.remove();
+
                     renderEntry(state.text, evalData.action, stepResult.reward, state.platform_policy_mode.toUpperCase(), evalData.reason, {history: state.user_history_summary, context: state.context_type});
                     updateHUD(stepResult.reward);
 
@@ -432,7 +576,19 @@ def read_root():
                         btnAutoStep.disabled = false;
                     }
                 } catch (e) {
+                    if (skeleton) skeleton.remove();
                     btnAutoStep.disabled = false;
+                    
+                    const errorEntry = document.createElement('div');
+                    errorEntry.className = 'log-entry';
+                    errorEntry.style.borderLeftColor = 'var(--danger)';
+                    errorEntry.style.background = 'rgba(244,114,182,0.05)';
+                    errorEntry.innerHTML = `
+                        <div class="log-meta"><span style="color:var(--danger)">⚠️ SYSTEM EXCEPTION</span></div>
+                        <div class="log-text">An intelligence bypass occurred or the connection was interrupted. Please check your Operation Center configuration or API availability.</div>
+                        <div style="font-size:0.6rem; color:var(--danger); margin-top:10px; opacity:0.7; font-family:'JetBrains Mono'">${e.toString()}</div>
+                    `;
+                    logViewport.prepend(errorEntry);
                 }
             };
 
@@ -464,8 +620,8 @@ def read_root():
                     <div style="display:flex; align-items:center; justify-content:space-between; margin-top:12px;">
                         <span class="log-badge" style="background:${colors[action] || 'var(--accent)'}; color:#020617; margin-top:0">${action}</span>
                         <div class="hitl-actions" id="hitl-${counter}" style="display:flex; gap:5px;">
-                            <button onclick="showOverrideMenu(this, ${reward}, '${action}')" style="background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); color:var(--muted); font-size:0.6rem; padding:4px 8px; border-radius:4px; cursor:pointer;">INCORRECT?</button>
-                            <button onclick="verifyAction(this)" style="background:rgba(74,222,128,0.1); border:1px solid var(--success); color:var(--success); font-size:0.6rem; padding:4px 8px; border-radius:4px; cursor:pointer;">VERIFY</button>
+                            <button onclick="showOverrideMenu(this, ${reward}, '${action}', \`${text.replace(/`/g, '\\`')}\`)" class="audit-btn">AUDIT</button>
+                            <button onclick="verifyAction(this)" class="verify-btn">VERIFY</button>
                         </div>
                     </div>
                 `;
@@ -478,26 +634,118 @@ def read_root():
                 btn.parentElement.innerHTML = '<span style="color:var(--success); font-size:0.6rem; font-weight:800; border:1px solid var(--success); padding:2px 6px; border-radius:4px;">✓ HUMAN VERIFIED</span>';
             }
 
-            function showOverrideMenu(btn, originalReward, originalAction) {
-                const container = btn.parentElement;
-                container.innerHTML = `
-                    <div style="display:flex; gap:5px; align-items:center;">
-                        <span style="font-size:0.6rem; color:var(--danger); font-weight:800; margin-right:5px;">SHOULD BE:</span>
-                        <button onclick="applyOverride(this, ${originalReward}, 'BAN_USER')" style="background:var(--danger); color:#000; border:none; font-size:0.55rem; padding:3px 6px; border-radius:4px; cursor:pointer; font-weight:700;">BAN</button>
-                        <button onclick="applyOverride(this, ${originalReward}, 'ALLOW')" style="background:var(--accent); color:#000; border:none; font-size:0.55rem; padding:3px 6px; border-radius:4px; cursor:pointer; font-weight:700;">ALLOW</button>
-                        <button onclick="applyOverride(this, ${originalReward}, 'SOFT_HIDE')" style="background:#fbbf24; color:#000; border:none; font-size:0.55rem; padding:3px 6px; border-radius:4px; cursor:pointer; font-weight:700;">HIDE</button>
-                    </div>
-                `;
+            function closeInspector() {
+                document.body.classList.remove('audit-active');
+                const pane = document.getElementById('inspector-pane');
+                pane.style.visibility = 'hidden';
+                pane.style.opacity = '0';
+                if (window.__active_row) window.__active_row.classList.remove('active-audit');
             }
 
-            function applyOverride(btn, originalReward, newTarget) {
-                // RL Logic: Deduct the undeserved reward and apply a correction penalty
-                // Since this was a mistake, we give it -1.0 total (undo the +reward and subtract 1)
-                const correction = - (originalReward + 1.0);
-                updateHUD(correction);
+            function showOverrideMenu(btn, originalReward, originalAction, originalText) {
+                const pane = document.getElementById('inspector-pane');
+                const content = document.getElementById('inspector-content');
+                const row = btn.closest('.log-entry');
+                
+                if (window.__active_row) window.__active_row.classList.remove('active-audit');
+                row.classList.add('active-audit');
+                window.__active_row = row;
 
-                const container = btn.closest('.hitl-actions');
-                container.innerHTML = `<span style="color:var(--danger); font-size:0.6rem; font-weight:800; border:1px solid var(--danger); padding:2px 6px; border-radius:4px;">𐄂 OVERRIDDEN: ${newTarget}</span>`;
+                window.__pending_text = originalText;
+                window.__pending_reward = originalReward;
+                window.__pending_hitl_id = btn.parentElement.id;
+                window.__selected_action = null; 
+                
+                content.innerHTML = `
+                    <div style="display:flex; flex-direction:column; gap:20px;">
+                        <div style="background:rgba(255,255,255,0.03); padding:20px; border-radius:16px; border:1px solid rgba(255,255,255,0.05);">
+                            <div style="font-size:0.6rem; color:var(--muted); text-transform:uppercase; font-weight:800; margin-bottom:10px;">Original Content</div>
+                            <div style="font-size:0.9rem; line-height:1.5;">"${originalText}"</div>
+                        </div>
+
+                        <div style="display:flex; flex-direction:column; gap:12px;">
+                            <label style="font-size:0.65rem; color:var(--danger); font-weight:800; text-transform:uppercase;">Correction Verdict</label>
+                            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;" id="action-selector">
+                                <button onclick="selectAction(this, 'ALLOW')" class="grid-btn">ALLOW</button>
+                                <button onclick="selectAction(this, 'ALLOW_WITH_WARNING')" class="grid-btn">WARNING</button>
+                                <button onclick="selectAction(this, 'SOFT_HIDE')" class="grid-btn">HIDE</button>
+                                <button onclick="selectAction(this, 'ESCALATE_HUMAN')" class="grid-btn">ESCALATE</button>
+                                <button onclick="selectAction(this, 'BAN_USER')" class="grid-btn" style="grid-column: span 2;">BAN USER</button>
+                            </div>
+                        </div>
+                        
+                        <div style="display:flex; flex-direction:column; gap:10px;">
+                            <label style="font-size:0.65rem; color:var(--muted); font-weight:800; text-transform:uppercase;">Memory Reason (Optional)</label>
+                            <textarea id="feedback-reason" placeholder="Why is this correction necessary?" style="min-height:100px; font-size:0.85rem; background:rgba(0,0,0,0.4); padding:15px; border:1px solid rgba(255,255,255,0.1); border-radius:12px; color:white; width:100%; resize:none;"></textarea>
+                        </div>
+                        
+                        <button id="btn-submit-feedback" onclick="submitFeedback()" class="btn btn-primary" style="margin-top:10px; opacity:0.5;" disabled>REINFORCE SYSTEM</button>
+                        
+                        <div id="feedback-status" style="font-size:0.7rem; color:var(--muted); text-align:center;">Select an action to enable submission.</div>
+                    </div>
+                `;
+                
+                pane.style.visibility = 'visible';
+                pane.style.opacity = '1';
+                document.body.classList.add('audit-active');
+            }
+
+            function selectAction(btn, action) {
+                // Clear state
+                const btns = document.querySelectorAll('#action-selector .grid-btn');
+                btns.forEach(b => {
+                    b.style.background = 'rgba(255,255,255,0.05)';
+                    b.style.color = 'white';
+                });
+                
+                // Set active
+                btn.style.background = 'var(--accent)';
+                btn.style.color = '#020617';
+                window.__selected_action = action;
+                
+                // Enable submit
+                const submit = document.getElementById('btn-submit-feedback');
+                submit.disabled = false;
+                submit.style.opacity = '1';
+                document.getElementById('feedback-status').innerHTML = "Ready to reinforce local memory.";
+            }
+
+            async function submitFeedback() {
+                const action = window.__selected_action;
+                const reason = document.getElementById('feedback-reason').value.trim() || "Manual correction by human auditor.";
+                const text = window.__pending_text;
+                const originalReward = window.__pending_reward;
+                const hitlId = window.__pending_hitl_id;
+                
+                const statusDiv = document.getElementById('feedback-status');
+                const submitBtn = document.getElementById('btn-submit-feedback');
+                
+                submitBtn.disabled = true;
+                statusDiv.innerHTML = "⏳ REINFORCING LOGIC...";
+
+                try {
+                    await fetch('/feedback', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({
+                            text: text,
+                            corrected_action: action,
+                            reason: reason
+                        })
+                    });
+
+                    const correction = - (originalReward + 1.0);
+                    updateHUD(correction);
+
+                    const container = document.getElementById(hitlId);
+                    container.innerHTML = `<span style="color:var(--danger); font-size:0.6rem; font-weight:800; border:1px solid var(--danger); padding:2px 6px; border-radius:4px;">🧠 MEMORY REINFORCED</span>`;
+                    
+                    statusDiv.innerHTML = "✅ SYSTEM REINFORCED!";
+                    setTimeout(closeInspector, 1000);
+                } catch (e) {
+                    statusDiv.innerHTML = "❌ MEMORY WRITE FAILED";
+                    submitBtn.disabled = false;
+                }
             }
 
 
@@ -509,16 +757,24 @@ def read_root():
 
 
 @app.post("/reset", tags=["🤖 Automated Benchmarking"], summary="1. Initialize Environment (Task Selection)")
-async def reset_env(
-    task_name: TaskName = Query(TaskName.TASK_1, description="Select the benchmark level to initialize."),
-    seed: Optional[int] = Query(42, description="Reproducibility seed for dataset sampling.")
-):
+async def reset_env(req: ResetRequest = Body(...)):
     """Resets the environment with a given task and seed. This must be the first step in any benchmarking track."""
     try:
-        state = await env.reset(task_name=TASK_MAP[task_name], seed=seed)
+        # Access the enum value (the human-readable name)
+        internal_task_name = TASK_MAP[req.task_name]
+        state = await env.reset(task_name=internal_task_name, seed=req.seed)
         return state
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
+
+@app.get("/graders", tags=["🛡️ Automated Benchmarking"])
+async def list_graders():
+    """Returns the list of graders available in the environment for discovery."""
+    return [
+        {"name": "basic_safety_grader", "description": "Grader for basic safety checks"},
+        {"name": "context_nuance_grader", "description": "Grader for contextual and sarcastic content"},
+        {"name": "fairness_bias_grader", "description": "Grader for fairness and bias parity"}
+    ]
 
 @app.post("/evaluate", tags=["🧪 Interactive Lab"], summary="Test Model Logic (XAI Insight)")
 async def evaluate_text(
@@ -633,6 +889,42 @@ async def predict_and_step(req: Optional[LLMConfigRequest] = Body(None)):
         "next_state": next_state,
         "info": info
     }
+
+@app.post("/feedback")
+async def save_feedback(req: FeedbackRequest):
+    """Saves human correction to local JSON memory for reinforcement learning."""
+    import json
+    memory_path = os.path.join(os.path.dirname(__file__), "..", "envs", "social_stream_moderation", "human_memory.json")
+    
+    # Load existing memory
+    memory = []
+    if os.path.exists(memory_path):
+        with open(memory_path, "r") as f:
+            try:
+                memory = json.load(f)
+            except:
+                memory = []
+                
+    # Check for duplicates or update
+    found = False
+    for entry in memory:
+        if entry["text"] == req.text:
+            entry["action"] = req.corrected_action
+            entry["reason"] = req.reason
+            found = True
+            break
+            
+    if not found:
+        memory.append({
+            "text": req.text,
+            "action": req.corrected_action,
+            "reason": req.reason
+        })
+        
+    with open(memory_path, "w") as f:
+        json.dump(memory, f, indent=2)
+        
+    return {"status": "success", "message": "Memory reinforced."}
 
 @app.get("/state", tags=["📊 System Monitoring"])
 def get_state():

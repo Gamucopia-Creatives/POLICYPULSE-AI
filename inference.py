@@ -85,7 +85,7 @@ MODEL_NAME = os.getenv("MODEL_NAME", "Qwen/Qwen2.5-72B-Instruct")
 HF_TOKEN = os.getenv("HF_TOKEN")  # No default value as per strict checklist
 
 LOCAL_IMAGE_NAME = os.getenv("LOCAL_IMAGE_NAME")
-TASK_NAME = os.getenv("TASK_NAME", "clear_cut_moderation")
+TASK_NAME = os.getenv("TASK_NAME", "Task 1: Basic Safety")
 BENCHMARK = "PolicyPulseAI"  # Specified by user
 
 # Agent Helper Class for Reasoning and Prediction
@@ -95,8 +95,23 @@ class PolicyPulseAgent:
         self.model = model
 
     def predict(self, state: State) -> tuple[ModerationAction, str]:
-        """Predicts the moderation action using LLM or rule-based fallback."""
+        """Predicts the moderation action using local memory, rules, or LLM."""
         
+        # 0. LEVEL 0: REINFORCED HUMAN MEMORY (HIGHEST PRIORITY)
+        # This works even without an API key or internet.
+        import os
+        import json
+        memory_path = os.path.join(os.path.dirname(__file__), "envs", "social_stream_moderation", "human_memory.json")
+        if os.path.exists(memory_path):
+            try:
+                with open(memory_path, "r") as f:
+                    memory = json.load(f)
+                    for entry in memory:
+                        if entry["text"].strip().lower() == state.text.strip().lower():
+                            return ModerationAction(entry["action"]), f"🧠 REINFORCED MEMORY: {entry['reason']}"
+            except Exception as e:
+                pass
+
         # 1. Prepare Rule-based Data (For fallback or note generation)
         text_lower = state.text.lower()
         matched_category = None

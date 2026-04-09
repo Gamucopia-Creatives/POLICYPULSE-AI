@@ -1,0 +1,7 @@
+[
+  {
+    "text": "non sense",
+    "action": "ALLOW_WITH_WARNING",
+    "reason": "it is not friendly"
+  }
+]

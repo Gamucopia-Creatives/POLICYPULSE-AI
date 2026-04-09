@@ -9,15 +9,15 @@ graders:
     description: "Grader for fairness and bias parity"
 
 tasks:
-  - name: clear_cut_moderation
+  - name: "Task 1: Basic Safety"
     difficulty: easy
     description: "Moderate a stream of social posts with obvious violations and safe content."
     grader: basic_safety_grader
-  - name: nuanced_sarcastic
+  - name: "Task 2: Context & Nuance"
     difficulty: medium
     description: "Handle sarcastic content and quotes of harmful material with condemnation."
     grader: context_nuance_grader
-  - name: policy_fairness
+  - name: "Task 3: Fairness & Bias"
     difficulty: hard
     description: "Ensure fairness across user groups and adhere to stricter policy regimes."
     grader: fairness_bias_grader

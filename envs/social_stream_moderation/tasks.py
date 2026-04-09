@@ -11,28 +11,28 @@ class TaskConfig(BaseModel):
     use_fairness: bool = False
 
 TASKS = {
-    "clear_cut_moderation": TaskConfig(
-        name="clear_cut_moderation",
+    "Task 1: Basic Safety": TaskConfig(
+        name="Task 1: Basic Safety",
         difficulty="easy",
         data_file="data_easy.json",
         episode_length=10,
         policy_mode=PolicyMode.NORMAL,
         use_fairness=False
     ),
-    "nuanced_sarcastic": TaskConfig(
-        name="nuanced_sarcastic",
+    "Task 2: Context & Nuance": TaskConfig(
+        name="Task 2: Context & Nuance",
         difficulty="medium",
         data_file="data_medium.json",
         episode_length=15,
         policy_mode=PolicyMode.NORMAL,
         use_fairness=False
     ),
-    "policy_fairness": TaskConfig(
-        name="policy_fairness",
+    "Task 3: Fairness & Bias": TaskConfig(
+        name="Task 3: Fairness & Bias",
         difficulty="hard",
         data_file="data_hard.json",
         episode_length=20,
-        policy_mode=PolicyMode.NORMAL, # Can vary via config if needed or randomized in reset
+        policy_mode=PolicyMode.NORMAL,
         use_fairness=True
     )
 }
