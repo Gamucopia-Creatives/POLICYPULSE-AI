@@ -3,10 +3,13 @@ version: 1.0.0
 graders:
   - id: basic_safety_grader
     description: "Grader for basic safety checks"
+    entry_point: envs.social_stream_moderation.graders:BasicSafetyGrader
   - id: context_nuance_grader
     description: "Grader for contextual and sarcastic content"
+    entry_point: envs.social_stream_moderation.graders:ContextNuanceGrader
   - id: fairness_bias_grader
     description: "Grader for fairness and bias parity"
+    entry_point: envs.social_stream_moderation.graders:FairnessBiasGrader
 
 tasks:
   - id: "Task 1: Basic Safety"

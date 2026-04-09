@@ -4,7 +4,7 @@ import random
 from typing import List, Dict, Any, Tuple, Optional
 from .models import HarmLabel, ModerationAction, State, PolicyMode, Post, UserGroup
 from .tasks import TASKS, TaskConfig
-from .graders import compute_per_post_reward, grade_episode
+from .graders import compute_per_post_reward, grade_episode, get_grader
 
 class SocialStreamModerationEnv:
     def __init__(self, data_dir: Optional[str] = None):
@@ -17,7 +17,8 @@ class SocialStreamModerationEnv:
         self.done = False
         self.episode_history: List[Dict[str, Any]] = []
         self.policy_mode = PolicyMode.NORMAL
-        
+        self._grader = None
+
     @classmethod
     async def from_docker_image(cls, image_name: Optional[str] = None):
         """Standard OpenEnv V4 interface for initializing the environment."""
@@ -47,7 +48,11 @@ class SocialStreamModerationEnv:
         self.done = False
         self.episode_history = []
         self.policy_mode = self.current_task.policy_mode
-        
+
+        # Initialise the grader for this task
+        self._grader = get_grader(self.current_task.grader_id)
+        self._grader.reset()
+
         return self._get_state()
         
     def _get_state(self) -> State:
@@ -88,11 +93,14 @@ class SocialStreamModerationEnv:
         # Compute reward
         reward = compute_per_post_reward(current_post.harm_label, action, self.policy_mode)
         
-        # Log to history for final grading
+        # Log to history for final grading (include context_type and
+        # policy_mode so context-aware graders can use them)
         self.episode_history.append({
             "post_id": current_post.post_id,
             "harm_label": current_post.harm_label,
             "user_group": current_post.user_group,
+            "context_type": current_post.context_type,
+            "policy_mode": self.policy_mode,
             "action": action,
             "reward": reward
         })
@@ -114,7 +122,12 @@ class SocialStreamModerationEnv:
         }
         
         if self.done:
-            final_score = grade_episode(self.episode_history, self.current_task.use_fairness)
+            # Use the task-specific grader when available
+            if self._grader is not None:
+                final_score = self._grader.grade(self.episode_history)
+            else:
+                final_score = grade_episode(self.episode_history, self.current_task.use_fairness)
             info["score"] = final_score
+            info["grader_id"] = self.current_task.grader_id
             
         return next_state, reward, self.done, info

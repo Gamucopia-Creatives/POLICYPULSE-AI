@@ -10,6 +10,8 @@ from typing import Optional, Dict, Any, List
 from enum import Enum
 from envs.social_stream_moderation.environment import SocialStreamModerationEnv
 from envs.social_stream_moderation.models import State, ModerationAction
+from envs.social_stream_moderation.graders import list_graders as _list_graders, get_grader
+from envs.social_stream_moderation.tasks import TASKS
 
 # Enums for Swagger Dropdowns
 class TaskName(str, Enum):
@@ -772,33 +774,18 @@ async def list_tasks():
     """Returns the list of tasks available in the environment for discovery."""
     return [
         {
-            "id": "Task 1: Basic Safety",
-            "difficulty": "easy",
-            "description": "Moderate a stream of social posts with obvious violations and safe content.",
-            "grader_id": "basic_safety_grader"
-        },
-        {
-            "id": "Task 2: Context & Nuance",
-            "difficulty": "medium",
-            "description": "Handle sarcastic content and quotes of harmful material with condemnation.",
-            "grader_id": "context_nuance_grader"
-        },
-        {
-            "id": "Task 3: Fairness & Bias",
-            "difficulty": "hard",
-            "description": "Ensure fairness across user groups and adhere to stricter policy regimes.",
-            "grader_id": "fairness_bias_grader"
+            "id": task_cfg.name,
+            "difficulty": task_cfg.difficulty,
+            "description": f"Episode length: {task_cfg.episode_length} posts. Policy mode: {task_cfg.policy_mode.value}.",
+            "grader_id": task_cfg.grader_id,
         }
+        for task_cfg in TASKS.values()
     ]
 
 @app.get("/graders", tags=["🛡️ Automated Benchmarking"])
-async def list_graders():
+async def list_graders_endpoint():
     """Returns the list of graders available in the environment for discovery."""
-    return [
-        {"id": "basic_safety_grader", "description": "Grader for basic safety checks"},
-        {"id": "context_nuance_grader", "description": "Grader for contextual and sarcastic content"},
-        {"id": "fairness_bias_grader", "description": "Grader for fairness and bias parity"}
-    ]
+    return _list_graders()
 
 @app.post("/evaluate", tags=["🧪 Interactive Lab"], summary="Test Model Logic (XAI Insight)")
 async def evaluate_text(
@@ -864,17 +851,20 @@ async def step_env(req: StepRequest):
         next_state, reward, done, info = await env.step(req.action)
 
         final_score = 0.0
+        grader_id = None
         if done:
-            from envs.social_stream_moderation.graders import grade_episode
-            # Assume fairness check for Task 3
-            final_score = grade_episode(env.episode_history, use_fairness=True)
+            # The environment now uses the task-specific grader internally;
+            # the final score and grader_id are returned in ``info``.
+            final_score = info.get("score", 0.0)
+            grader_id = info.get("grader_id")
 
         return {
             "next_state": next_state,
             "reward": reward,
             "done": done,
             "info": info,
-            "final_score": final_score
+            "final_score": final_score,
+            "grader_id": grader_id,
         }
 
     except RuntimeError as e:
@@ -900,9 +890,11 @@ async def predict_and_step(req: Optional[LLMConfigRequest] = Body(None)):
     next_state, reward, done, info = await env.step(action)
 
     final_score = 0.0
+    grader_id = None
     if done:
-        from envs.social_stream_moderation.graders import grade_episode
-        final_score = grade_episode(env.episode_history, use_fairness=True)
+        # The environment now uses the task-specific grader internally
+        final_score = info.get("score", 0.0)
+        grader_id = info.get("grader_id")
 
     return {
         "prediction": action.value,
@@ -910,6 +902,7 @@ async def predict_and_step(req: Optional[LLMConfigRequest] = Body(None)):
         "reward": reward,
         "done": done,
         "final_score": final_score,
+        "grader_id": grader_id,
         "next_state": next_state,
         "info": info
     }
