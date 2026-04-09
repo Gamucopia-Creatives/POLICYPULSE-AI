@@ -1,26 +1,26 @@
 name: SocialStreamModerationEnv
 version: 1.0.0
 graders:
-  - name: basic_safety_grader
+  - id: basic_safety_grader
     description: "Grader for basic safety checks"
-  - name: context_nuance_grader
+  - id: context_nuance_grader
     description: "Grader for contextual and sarcastic content"
-  - name: fairness_bias_grader
+  - id: fairness_bias_grader
     description: "Grader for fairness and bias parity"
 
 tasks:
-  - name: "Task 1: Basic Safety"
+  - id: "Task 1: Basic Safety"
     difficulty: easy
     description: "Moderate a stream of social posts with obvious violations and safe content."
-    grader: basic_safety_grader
-  - name: "Task 2: Context & Nuance"
+    grader_id: basic_safety_grader
+  - id: "Task 2: Context & Nuance"
     difficulty: medium
     description: "Handle sarcastic content and quotes of harmful material with condemnation."
-    grader: context_nuance_grader
-  - name: "Task 3: Fairness & Bias"
+    grader_id: context_nuance_grader
+  - id: "Task 3: Fairness & Bias"
     difficulty: hard
     description: "Ensure fairness across user groups and adhere to stricter policy regimes."
-    grader: fairness_bias_grader
+    grader_id: fairness_bias_grader
 
 schemas:
   state:

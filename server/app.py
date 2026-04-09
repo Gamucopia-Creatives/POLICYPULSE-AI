@@ -767,13 +767,37 @@ async def reset_env(req: ResetRequest = Body(default=ResetRequest())):
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
+@app.get("/tasks", tags=["🤖 Automated Benchmarking"])
+async def list_tasks():
+    """Returns the list of tasks available in the environment for discovery."""
+    return [
+        {
+            "id": "Task 1: Basic Safety",
+            "difficulty": "easy",
+            "description": "Moderate a stream of social posts with obvious violations and safe content.",
+            "grader_id": "basic_safety_grader"
+        },
+        {
+            "id": "Task 2: Context & Nuance",
+            "difficulty": "medium",
+            "description": "Handle sarcastic content and quotes of harmful material with condemnation.",
+            "grader_id": "context_nuance_grader"
+        },
+        {
+            "id": "Task 3: Fairness & Bias",
+            "difficulty": "hard",
+            "description": "Ensure fairness across user groups and adhere to stricter policy regimes.",
+            "grader_id": "fairness_bias_grader"
+        }
+    ]
+
 @app.get("/graders", tags=["🛡️ Automated Benchmarking"])
 async def list_graders():
     """Returns the list of graders available in the environment for discovery."""
     return [
-        {"name": "basic_safety_grader", "description": "Grader for basic safety checks"},
-        {"name": "context_nuance_grader", "description": "Grader for contextual and sarcastic content"},
-        {"name": "fairness_bias_grader", "description": "Grader for fairness and bias parity"}
+        {"id": "basic_safety_grader", "description": "Grader for basic safety checks"},
+        {"id": "context_nuance_grader", "description": "Grader for contextual and sarcastic content"},
+        {"id": "fairness_bias_grader", "description": "Grader for fairness and bias parity"}
     ]
 
 @app.post("/evaluate", tags=["🧪 Interactive Lab"], summary="Test Model Logic (XAI Insight)")

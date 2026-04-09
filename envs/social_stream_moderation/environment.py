@@ -66,7 +66,10 @@ class SocialStreamModerationEnv:
             step_index=self.step_index,
             total_steps=len(self.episode_posts)
         )
-        
+    def state(self) -> State:
+        """Standard OpenEnv interface to return the current observation."""
+        return self._get_state()   
+
     async def step(self, action: ModerationAction) -> Tuple[Optional[State], float, bool, Dict[str, Any]]:
         """Processes one moderation action."""
         if self.done:
