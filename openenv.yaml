@@ -24,6 +24,19 @@ tasks:
     difficulty: hard
     description: "Ensure fairness across user groups and adhere to stricter policy regimes."
     grader_id: fairness_bias_grader
+  # Legacy aliases used by validate_submission.py
+  - id: clear_cut_moderation
+    difficulty: easy
+    description: "Alias for Task 1: Basic Safety"
+    grader_id: basic_safety_grader
+  - id: nuanced_sarcastic
+    difficulty: medium
+    description: "Alias for Task 2: Context & Nuance"
+    grader_id: context_nuance_grader
+  - id: policy_fairness
+    difficulty: hard
+    description: "Alias for Task 3: Fairness & Bias"
+    grader_id: fairness_bias_grader
 
 schemas:
   state:
