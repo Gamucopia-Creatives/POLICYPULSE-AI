@@ -10,7 +10,7 @@ from typing import Optional, Dict, Any, List
 from enum import Enum
 from envs.social_stream_moderation.environment import SocialStreamModerationEnv
 from envs.social_stream_moderation.models import State, ModerationAction
-from envs.social_stream_moderation.graders import list_graders as _list_graders, get_grader
+from envs.social_stream_moderation.graders import list_graders as _list_graders, get_grader, grade_episode
 from envs.social_stream_moderation.tasks import TASKS
 
 # Enums for Swagger Dropdowns
@@ -769,12 +769,71 @@ async def reset_env(req: ResetRequest = Body(default=ResetRequest())):
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
+@app.get("/health", tags=["📊 System Monitoring"])
+def health_check():
+    """Health check endpoint required by OpenEnv runtime validation."""
+    return {"status": "healthy"}
+
+
+@app.get("/metadata", tags=["📊 System Monitoring"])
+def metadata():
+    """Returns environment metadata required by OpenEnv runtime validation."""
+    return {
+        "name": "SocialStreamModerationEnv",
+        "description": (
+            "A content-moderation RL environment where an agent must classify "
+            "social-media posts as safe or harmful under varying policy regimes, "
+            "with tasks spanning basic safety, contextual nuance, and fairness."
+        ),
+        "version": "1.2.0",
+        "tasks": list(TASKS.keys()),
+    }
+
+
+@app.get("/schema", tags=["📊 System Monitoring"])
+def schema():
+    """Returns action, observation, and state schemas for OpenEnv validation."""
+    return {
+        "action": {
+            "type": "string",
+            "enum": [a.value for a in ModerationAction],
+        },
+        "observation": {
+            "type": "object",
+            "properties": {
+                "post_id": {"type": "string"},
+                "text": {"type": "string"},
+                "user_history_summary": {"type": "string"},
+                "context_type": {"type": "string"},
+                "platform_policy_mode": {"type": "string"},
+                "user_group": {"type": "string"},
+                "step_index": {"type": "integer"},
+                "total_steps": {"type": "integer"},
+            },
+        },
+        "state": {
+            "type": "object",
+            "properties": {
+                "post_id": {"type": "string"},
+                "text": {"type": "string"},
+                "context_type": {"type": "string"},
+                "platform_policy_mode": {"type": "string"},
+                "user_group": {"type": "string"},
+                "step_index": {"type": "integer"},
+                "total_steps": {"type": "integer"},
+            },
+        },
+    }
+
+
 @app.get("/tasks", tags=["🤖 Automated Benchmarking"])
 async def list_tasks():
     """Returns the list of tasks available in the environment for discovery."""
     return [
         {
+            "task_id": task_cfg.name,
             "id": task_cfg.name,
+            "name": task_cfg.name,
             "difficulty": task_cfg.difficulty,
             "description": f"Episode length: {task_cfg.episode_length} posts. Policy mode: {task_cfg.policy_mode.value}.",
             "grader_id": task_cfg.grader_id,
@@ -786,6 +845,27 @@ async def list_tasks():
 async def list_graders_endpoint():
     """Returns the list of graders available in the environment for discovery."""
     return _list_graders()
+
+
+@app.get("/grader", tags=["🤖 Automated Benchmarking"])
+def grader_score():
+    """Returns the grader score for the current (or most recent) episode.
+
+    The Scaler / OpenEnv hackathon validator calls this endpoint after running
+    an episode to obtain the final score.  If no episode has been run yet a
+    minimal default score is returned.
+    """
+    # Use the environment's last episode info to compute the score
+    if env.episode_history:
+        task = env.current_task
+        if task is not None:
+            grader_inst = get_grader(task.grader_id)
+            score = grader_inst.grade(env.episode_history)
+        else:
+            score = grade_episode(env.episode_history, use_fairness=False)
+    else:
+        score = 0.001
+    return {"score": score}
 
 @app.post("/evaluate", tags=["🧪 Interactive Lab"], summary="Test Model Logic (XAI Insight)")
 async def evaluate_text(
