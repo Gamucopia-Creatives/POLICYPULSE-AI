@@ -40,3 +40,22 @@ TASKS = {
         grader_id="fairness_bias_grader"
     )
 }
+
+# Legacy aliases used by validate_submission.py and inference.py CLI.
+# Kept in a separate dict so that TASKS.values() only yields the 3 canonical
+# entries (avoids duplicates in the /tasks API endpoint).
+TASK_ALIASES = {
+    "clear_cut_moderation": "Task 1: Basic Safety",
+    "nuanced_sarcastic": "Task 2: Context & Nuance",
+    "policy_fairness": "Task 3: Fairness & Bias",
+}
+
+
+def resolve_task(name: str) -> TaskConfig:
+    """Look up a task by canonical name or legacy alias."""
+    if name in TASKS:
+        return TASKS[name]
+    canonical = TASK_ALIASES.get(name)
+    if canonical and canonical in TASKS:
+        return TASKS[canonical]
+    raise KeyError(f"Unknown task: {name}")

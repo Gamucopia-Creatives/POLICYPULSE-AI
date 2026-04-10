@@ -3,7 +3,7 @@ import os
 import random
 from typing import List, Dict, Any, Tuple, Optional
 from .models import HarmLabel, ModerationAction, State, PolicyMode, Post, UserGroup
-from .tasks import TASKS, TaskConfig
+from .tasks import TASKS, TaskConfig, resolve_task
 from .graders import compute_per_post_reward, grade_episode, get_grader
 
 class SocialStreamModerationEnv:
@@ -30,10 +30,10 @@ class SocialStreamModerationEnv:
         if seed is not None:
             random.seed(seed)
             
-        if task_name not in TASKS:
+        try:
+            self.current_task = resolve_task(task_name)
+        except KeyError:
             raise ValueError(f"Task {task_name} not found in TASKS.")
-            
-        self.current_task = TASKS[task_name]
         data_path = os.path.join(self.data_dir, self.current_task.data_file)
         
         with open(data_path, "r") as f:
