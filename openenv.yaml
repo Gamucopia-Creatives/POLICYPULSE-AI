@@ -1,5 +1,22 @@
 name: SocialStreamModerationEnv
 version: 1.0.0
+description: >
+  A content-moderation RL environment where an agent must classify social-media
+  posts as safe or harmful under varying policy regimes, with tasks spanning
+  basic safety, contextual nuance, and fairness.
+
+endpoints:
+  reset: /reset
+  step: /step
+  state: /state
+  tasks: /tasks
+  grader: /grader
+  graders: /graders
+  health: /health
+  metadata: /metadata
+  schema: /schema
+  baseline: /predict_and_step
+
 graders:
   - id: basic_safety_grader
     description: "Grader for basic safety checks"
@@ -12,30 +29,20 @@ graders:
     entry_point: envs.social_stream_moderation.graders:FairnessBiasGrader
 
 tasks:
-  - id: "Task 1: Basic Safety"
+  - id: clear_cut_moderation
+    name: "Task 1: Basic Safety"
     difficulty: easy
     description: "Moderate a stream of social posts with obvious violations and safe content."
     grader_id: basic_safety_grader
-  - id: "Task 2: Context & Nuance"
+  - id: nuanced_sarcastic
+    name: "Task 2: Context & Nuance"
     difficulty: medium
     description: "Handle sarcastic content and quotes of harmful material with condemnation."
     grader_id: context_nuance_grader
-  - id: "Task 3: Fairness & Bias"
+  - id: policy_fairness
+    name: "Task 3: Fairness & Bias"
     difficulty: hard
     description: "Ensure fairness across user groups and adhere to stricter policy regimes."
-    grader_id: fairness_bias_grader
-  # Legacy aliases used by validate_submission.py
-  - id: clear_cut_moderation
-    difficulty: easy
-    description: "Alias for Task 1: Basic Safety"
-    grader_id: basic_safety_grader
-  - id: nuanced_sarcastic
-    difficulty: medium
-    description: "Alias for Task 2: Context & Nuance"
-    grader_id: context_nuance_grader
-  - id: policy_fairness
-    difficulty: hard
-    description: "Alias for Task 3: Fairness & Bias"
     grader_id: fairness_bias_grader
 
 schemas:
