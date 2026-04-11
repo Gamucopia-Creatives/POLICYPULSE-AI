@@ -88,8 +88,8 @@ app = FastAPI(
 env = SocialStreamModerationEnv()
 
 class ResetRequest(BaseModel):
-    task_name: Optional[TaskName] = Field(None, description="Select the benchmark level to initialize (Swagger UI).")
-    task_id: Optional[str] = Field(None, description="Machine-readable task ID (e.g. 'clear_cut_moderation'). Used by the validator.")
+    task_id: Optional[str] = Field(None, description="Task ID (e.g. clear_cut_moderation, nuanced_sarcastic, policy_fairness)")
+    task_name: Optional[str] = Field(None, description="Task name (e.g. 'Task 1: Basic Safety')")
     seed: Optional[int] = Field(42, description="Reproducibility seed for dataset sampling.")
 
 class EvaluateRequest(BaseModel):
@@ -105,6 +105,7 @@ class LLMConfigRequest(BaseModel):
 
 class StepRequest(BaseModel):
     action: ModerationAction = Field(ModerationAction.ALLOW, description="The action to apply to the current post.")
+    task_id: Optional[str] = None
 
 class FeedbackRequest(BaseModel):
     text: str
@@ -764,24 +765,14 @@ def read_root():
 
 @app.post("/reset", tags=["🤖 Automated Benchmarking"], summary="1. Initialize Environment (Task Selection)")
 async def reset_env(req: ResetRequest = Body(default=ResetRequest())):
-    """Resets the environment with a given task and seed. This must be the first step in any benchmarking track.
-
-    Accepts either ``task_id`` (legacy machine ID like ``clear_cut_moderation``)
-    or ``task_name`` (Swagger UI enum).  ``task_id`` takes precedence when both
-    are supplied.
-    """
+    """Resets the environment with a given task and seed."""
     try:
-        if req.task_id:
-            # Validator sends task_id (legacy ID like "clear_cut_moderation")
-            task_cfg = resolve_task(req.task_id)
-            internal_task_name = task_cfg.name
-        elif req.task_name:
-            # Swagger UI sends the enum
-            internal_task_name = TASK_MAP[req.task_name]
-        else:
-            # Default to Task 1
-            internal_task_name = "Task 1: Basic Safety"
-        state = await env.reset(task_name=internal_task_name, seed=req.seed)
+        # Accept task_id OR task_name (validator sends task_id)
+        task_key = req.task_id or req.task_name or "clear_cut_moderation"
+
+        # If it's an enum value like "Task 1: Basic Safety", use directly
+        # If it's an alias like "clear_cut_moderation", resolve_task handles it
+        state = await env.reset(task_name=task_key, seed=req.seed)
         return state
     except (ValueError, KeyError) as e:
         raise HTTPException(status_code=400, detail=str(e))
@@ -843,24 +834,26 @@ def schema():
     }
 
 
+from envs.social_stream_moderation.tasks import TASK_ALIASES
+
 @app.get("/tasks", tags=["🤖 Automated Benchmarking"])
 async def list_tasks():
-    """Returns the list of tasks available in the environment for discovery.
+    """Returns the list of tasks available in the environment for discovery."""
+    # Build reverse map: canonical name -> alias ID
+    reverse_aliases = {v: k for k, v in TASK_ALIASES.items()}
 
-    ``task_id`` / ``id`` use the legacy machine-readable IDs that match
-    ``openenv.yaml`` (e.g. ``clear_cut_moderation``) so the external validator
-    can cross-reference them.
-    """
     return [
         {
-            "task_id": CANONICAL_TO_LEGACY.get(canonical, canonical),
-            "id": CANONICAL_TO_LEGACY.get(canonical, canonical),
+            "task_id": reverse_aliases.get(task_cfg.name, task_cfg.name),
+            "id": reverse_aliases.get(task_cfg.name, task_cfg.name),
             "name": task_cfg.name,
             "difficulty": task_cfg.difficulty,
             "description": f"Episode length: {task_cfg.episode_length} posts. Policy mode: {task_cfg.policy_mode.value}.",
             "grader_id": task_cfg.grader_id,
+            "grader": "deterministic",
+            "scoring": "0.0-1.0",
         }
-        for canonical, task_cfg in TASKS.items()
+        for task_cfg in TASKS.values()
     ]
 
 @app.get("/graders", tags=["🛡️ Automated Benchmarking"])
@@ -874,41 +867,18 @@ _task_scores: Dict[str, float] = {}
 
 
 @app.get("/grader", tags=["🤖 Automated Benchmarking"])
-def grader_score(task_id: Optional[str] = Query(None, description="Legacy task ID to retrieve a specific task's score.")):
-    """Returns the grader score for the current (or most recent) episode.
-
-    The Scaler / OpenEnv hackathon validator calls this endpoint after running
-    an episode to obtain the final score.  Accepts an optional ``task_id``
-    query parameter to retrieve the score for a specific task.
-
-    If no episode has been run yet a minimal default score is returned.
-    """
-    # If a specific task_id is requested, look up its cached score
-    if task_id:
-        if task_id in _task_scores:
-            return {"score": _task_scores[task_id]}
-        # Also check canonical name
-        canonical = TASK_ALIASES.get(task_id)
-        if canonical and canonical in _task_scores:
-            return {"score": _task_scores[canonical]}
-        return {"score": 0.001}
-
-    # Use the environment's last episode info to compute the score
+def grader_score(task_id: Optional[str] = None):
+    """Returns the grader score for the current (or most recent) episode."""
     if env.episode_history:
         task = env.current_task
         if task is not None:
             grader_inst = get_grader(task.grader_id)
             score = grader_inst.grade(env.episode_history)
-            # Cache the score under both canonical name and legacy ID
-            _task_scores[task.name] = score
-            legacy_id = CANONICAL_TO_LEGACY.get(task.name)
-            if legacy_id:
-                _task_scores[legacy_id] = score
         else:
             score = grade_episode(env.episode_history, use_fairness=False)
     else:
         score = 0.001
-    return {"score": score}
+    return {"score": score, "task_id": task_id}
 
 @app.post("/evaluate", tags=["🧪 Interactive Lab"], summary="Test Model Logic (XAI Insight)")
 async def evaluate_text(
