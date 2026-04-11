@@ -1,77 +1,95 @@
-name: SocialStreamModerationEnv
-version: 1.0.0
+spec_version: 1
+name: social_stream_moderation
+type: environment
+runtime: docker
+app: server.app:app
+port: 7860
 description: >
   A content-moderation RL environment where an agent must classify social-media
   posts as safe or harmful under varying policy regimes, with tasks spanning
   basic safety, contextual nuance, and fairness.
-
-endpoints:
-  reset: /reset
-  step: /step
-  state: /state
-  tasks: /tasks
-  grader: /grader
-  graders: /graders
-  health: /health
-  metadata: /metadata
-  schema: /schema
-  baseline: /predict_and_step
-
-graders:
-  - id: basic_safety_grader
-    description: "Grader for basic safety checks"
-    entry_point: envs.social_stream_moderation.graders:BasicSafetyGrader
-  - id: context_nuance_grader
-    description: "Grader for contextual and sarcastic content"
-    entry_point: envs.social_stream_moderation.graders:ContextNuanceGrader
-  - id: fairness_bias_grader
-    description: "Grader for fairness and bias parity"
-    entry_point: envs.social_stream_moderation.graders:FairnessBiasGrader
 
 tasks:
   - id: clear_cut_moderation
     name: "Task 1: Basic Safety"
     difficulty: easy
     description: "Moderate a stream of social posts with obvious violations and safe content."
+    grader: deterministic
     grader_id: basic_safety_grader
+    scoring: "0.0-1.0 reward based on action-label match"
+
   - id: nuanced_sarcastic
     name: "Task 2: Context & Nuance"
     difficulty: medium
     description: "Handle sarcastic content and quotes of harmful material with condemnation."
+    grader: deterministic
     grader_id: context_nuance_grader
+    scoring: "0.0-1.0 reward with context-aware adjustments"
+
   - id: policy_fairness
     name: "Task 3: Fairness & Bias"
     difficulty: hard
     description: "Ensure fairness across user groups and adhere to stricter policy regimes."
+    grader: deterministic
     grader_id: fairness_bias_grader
+    scoring: "0.0-1.0 reward with fairness penalty"
 
-schemas:
-  state:
-    type: object
-    properties:
-      post_id: { type: string }
-      text: { type: string }
-      user_history_summary: { type: string }
-      context_type: { type: string }
-      platform_policy_mode: { type: string }
-      user_group: { type: string }
-      step_index: { type: integer }
-      total_steps: { type: integer }
-  action:
-    type: string
-    enum:
-      - ALLOW
-      - ALLOW_WITH_WARNING
-      - SOFT_HIDE
-      - ESCALATE_HUMAN
-      - BAN_USER
-  info:
-    type: object
-    properties:
-      ground_truth_label: { type: string }
-      action_taken: { type: string }
-      reward: { type: number }
-      score: { type: number }
+graders:
+  - id: basic_safety_grader
+    description: "Grader for basic safety checks"
+    type: deterministic
+    entry_point: envs.social_stream_moderation.graders:BasicSafetyGrader
+  - id: context_nuance_grader
+    description: "Grader for contextual and sarcastic content"
+    type: deterministic
+    entry_point: envs.social_stream_moderation.graders:ContextNuanceGrader
+  - id: fairness_bias_grader
+    description: "Grader for fairness and bias parity"
+    type: deterministic
+    entry_point: envs.social_stream_moderation.graders:FairnessBiasGrader
+
+observation_space:
+  post_id: "string"
+  text: "string"
+  user_history_summary: "string"
+  context_type: "string"
+  platform_policy_mode: "string"
+  user_group: "string"
+  step_index: "integer"
+  total_steps: "integer"
+
+action_space:
+  type: string
+  enum:
+    - ALLOW
+    - ALLOW_WITH_WARNING
+    - SOFT_HIDE
+    - ESCALATE_HUMAN
+    - BAN_USER
+
+reward:
+  type: continuous
+  range: [0.0, 1.0]
+
+endpoints:
+  - path: /reset
+    method: POST
+    description: Start a new episode
+  - path: /step
+    method: POST
+    description: Submit a moderation action
+  - path: /state
+    method: GET
+    description: Get current episode state
+  - path: /tasks
+    method: GET
+    description: List all tasks with grader info
+  - path: /grader
+    method: GET
+    description: Get grader score for current episode
+  - path: /health
+    method: GET
+    description: Health check
 
 paths:
   inference: ./inference.py
