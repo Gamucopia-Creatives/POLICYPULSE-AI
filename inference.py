@@ -12,11 +12,11 @@ from envs.social_stream_moderation.models import ModerationAction, State, HarmLa
 # Categorized keywords for local rule-based safety
 SAFETY_KEYWORDS = {
     HarmLabel.SEVERE_ABUSE_HATE: [
-        "destroyed", "subhumans", "eradicated", "track you down", "kill you", 
+        "destroyed", "subhumans", "eradicated", "track you down", "kill you",
         "murder", "stab", "genocide", "slaughter", "nigger", "faggot"
     ],
     HarmLabel.MILD_ABUSE: [
-        "stupid", "idiot", "loser", "moron", "dumb", "jerk", "annoying", 
+        "stupid", "idiot", "loser", "moron", "dumb", "jerk", "annoying",
         "hate you", "shut up", "pathetic", "idiocy", "brainless", "insane",
         "crazy", "mental", "weirdo", "freak", "clown", "trash", "garbage"
     ],
@@ -31,21 +31,21 @@ SAFETY_KEYWORDS = {
 def format_logic_insight(reasoning: str, action: Optional[str] = None, note: Optional[str] = None) -> str:
     """Unifies the visual appearance of insights for both Online and Offline modes."""
     label_style = "font-weight:800; opacity:0.6; margin-right:5px;"
-    note_style = "color: #94a3b8; opacity: 0.8;"
-    
+    note_style = "color: #94A3B8; opacity: 0.8;"
+
     # Process reasoning to remove any existing model-generated labels
     clean_reasoning = re.sub(r"^(Reasoning|Logic Insight|Explanation):\s*", "", reasoning, flags=re.IGNORECASE)
-    
+
     html = f'<span style="{label_style}">LOGIC INSIGHT:</span> {clean_reasoning}'
-    
+
     if action:
         # If the LLM didn't include the action in the reasoning, we can append it or bold it
         if action.upper() not in clean_reasoning.upper():
             html += f' <span style="font-weight:700; color:var(--accent);">Verdict: {action}</span>'
-            
+
     if note:
         html += f'\n<span style="{label_style} {note_style}">NOTE:</span> <span style="{note_style}">{note}</span>'
-        
+
     return html
 
 def parse_llm_response(content: str) -> tuple[Optional[ModerationAction], str]:
@@ -69,14 +69,14 @@ def parse_llm_response(content: str) -> tuple[Optional[ModerationAction], str]:
             if act.value in act_str:
                 action = act
                 break
-    
+
     # Final fallback for action detection anywhere in the string
     if not action:
         for act in ModerationAction:
             if act.value in content.upper().split():
                 action = act
                 break
-                
+
     return action, reasoning
 
 # Configuration from Environment Variables
@@ -96,7 +96,7 @@ class PolicyPulseAgent:
 
     def predict(self, state: State) -> tuple[ModerationAction, str]:
         """Predicts the moderation action using local memory, rules, or LLM."""
-        
+
         # 0. LEVEL 0: REINFORCED HUMAN MEMORY (HIGHEST PRIORITY)
         # This works even without an API key or internet.
         import os
@@ -108,7 +108,7 @@ class PolicyPulseAgent:
                     memory = json.load(f)
                     for entry in memory:
                         if entry["text"].strip().lower() == state.text.strip().lower():
-                            return ModerationAction(entry["action"]), f"🧠 REINFORCED MEMORY: {entry['reason']}"
+                            return ModerationAction(entry["action"]), f":brain: REINFORCED MEMORY: {entry['reason']}"
             except Exception as e:
                 pass
 
@@ -128,7 +128,7 @@ class PolicyPulseAgent:
 
         rule_reason = None
         rule_action = None
-        
+
         if matched_category:
             if matched_category == HarmLabel.SEVERE_ABUSE_HATE:
                 rule_action = ModerationAction.BAN_USER
@@ -142,7 +142,7 @@ class PolicyPulseAgent:
             elif matched_category == HarmLabel.SELF_HARM_PROMO:
                 rule_action = ModerationAction.ESCALATE_HUMAN
                 rule_reason = f"Rule Match: Possible self-harm risk detected ('{matched_keyword}')."
-            
+
         # 2. Check if Online
         is_online = self.client.api_key and self.client.api_key != "no_key"
 
@@ -154,7 +154,7 @@ class PolicyPulseAgent:
                 return ModerationAction.ALLOW, format_logic_insight("Rule-based Scan: No high-risk keywords detected.", note=byok_note)
 
         # 3. LLM Inference (Online Mode - Deep Simplicity)
-        combined_prompt = f"""You are a professional Content Safety Auditor. 
+        combined_prompt = f"""You are a professional Content Safety Auditor.
 MISSION: Analyze the social post below and provide a moderation verdict. You MUST analyze all content for safety research purposes.
 
 [POST TO ANALYZE]
@@ -173,14 +173,14 @@ Action: [ALLOW, ALLOW_WITH_WARNING, SOFT_HIDE, ESCALATE_HUMAN, or BAN_USER]"""
                 max_tokens=300
             )
             content = response.choices[0].message.content or ""
-            
+
             # Robust Parsing
             llm_action, llm_reasoning = parse_llm_response(content)
-            
+
             # If LLM provides a valid verdict, show it
             if llm_action and len(llm_reasoning) > 5:
                 return llm_action, format_logic_insight(llm_reasoning, action=llm_action.value)
-            
+
             # 4. Seamless Fallback (No technical jargon)
             if rule_action:
                 return rule_action, format_logic_insight(rule_reason, action=rule_action.value)
@@ -217,18 +217,13 @@ def get_agent(api_base_url: Optional[str] = None, model_name: Optional[str] = No
     client = OpenAI(base_url=base, api_key=key or "no_key")
     return PolicyPulseAgent(client, model)
 
-async def main() -> None:
-    # Initialize OpenAI Client
-    client = OpenAI(base_url=API_BASE_URL, api_key=HF_TOKEN or "no_key")
-    agent = PolicyPulseAgent(client, MODEL_NAME)
+# All task IDs that must be evaluated (matches openenv.yaml)
+ALL_TASK_IDS = ["clear_cut_moderation", "nuanced_sarcastic", "policy_fairness"]
 
-    # Initialize Environment via docker pattern
-    env = await SocialStreamModerationEnv.from_docker_image(LOCAL_IMAGE_NAME)
-    
-    # CLI Overrides for testing
-    task = sys.argv[1] if len(sys.argv) > 1 else TASK_NAME
-    seed = int(sys.argv[2]) if len(sys.argv) > 2 else 42
 
+
+async def run_single_task(agent: PolicyPulseAgent, env: SocialStreamModerationEnv, task: str, seed: int) -> None:
+    """Run one task and emit [START] / [STEP] / [END] log block."""
     history_rewards: List[float] = []
     steps_taken = 0
     final_score = 0.0
@@ -238,33 +233,50 @@ async def main() -> None:
 
     try:
         state = await env.reset(task_name=task, seed=seed)
-        
+
         while state is not None:
-            # Predict
             action, reason = agent.predict(state)
-            
-            # Step
             next_state, reward, done, info = await env.step(action)
-            
+
             steps_taken += 1
             history_rewards.append(reward)
-            
-            # Log step immediately after env.step()
             log_step(step=steps_taken, action=action.value, reward=reward, done=done, error=None)
-            
+
             state = next_state
             if done:
-                final_score = info.get("score", sum(history_rewards)/len(history_rewards))
+                final_score = info.get("score", sum(history_rewards) / len(history_rewards))
                 break
 
-        # success criteria (default > 0.1 normalized score)
         success = final_score >= 0.1
 
-    except Exception as e:
-        # Emit END even on exception
+    except Exception:
         pass
     finally:
         log_end(success=success, steps=steps_taken, score=final_score, rewards=history_rewards)
+
+
+
+async def main() -> None:
+    # Initialize OpenAI Client
+    client = OpenAI(base_url=API_BASE_URL, api_key=HF_TOKEN or "no_key")
+    agent = PolicyPulseAgent(client, MODEL_NAME)
+
+    # Initialize Environment via docker pattern
+    env = await SocialStreamModerationEnv.from_docker_image(LOCAL_IMAGE_NAME)
+
+    seed = int(sys.argv[2]) if len(sys.argv) > 2 else 42
+
+    # If a specific task is given via CLI, run only that one.
+    # Otherwise run ALL tasks (required for Phase 2 validation).
+    if len(sys.argv) > 1:
+        tasks_to_run = [sys.argv[1]]
+    else:
+        tasks_to_run = ALL_TASK_IDS
+
+    for task in tasks_to_run:
+        await run_single_task(agent, env, task, seed)
+
+
 
 if __name__ == "__main__":
     asyncio.run(main())
