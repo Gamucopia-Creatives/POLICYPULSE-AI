@@ -866,9 +866,9 @@ async def list_graders_endpoint():
 _task_scores: Dict[str, float] = {}
 
 
-@app.get("/grader", tags=["🤖 Automated Benchmarking"])
-def grader_score(task_id: Optional[str] = None):
-    """Returns the grader score for the current (or most recent) episode."""
+@app.post("/grader", tags=[":robot_face: Automated Benchmarking"])
+def grader_score_post(task_id: Optional[str] = Body(None), episode_id: Optional[str] = Body(None)):
+    """POST version of grader endpoint for validator compatibility."""
     if env.episode_history:
         task = env.current_task
         if task is not None:
