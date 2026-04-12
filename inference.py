@@ -108,7 +108,7 @@ class PolicyPulseAgent:
                     memory = json.load(f)
                     for entry in memory:
                         if entry["text"].strip().lower() == state.text.strip().lower():
-                            return ModerationAction(entry["action"]), f":brain: REINFORCED MEMORY: {entry['reason']}"
+                            return ModerationAction(entry["action"]), f"🧠 REINFORCED MEMORY: {entry['reason']}"
             except Exception as e:
                 pass
 
